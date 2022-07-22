@@ -255,7 +255,6 @@ Pane {
     function destroyOnClosed(obj) {
         obj.aboutToHide.connect(() => obj.destroy(1000));
     }
-
     Connections {
         function onOpenProfile(profile) {
             var userProfile = userProfileComponent.createObject(timelineRoot, {

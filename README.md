@@ -1,25 +1,20 @@
-# CMake lsp based on Tower and treesitter
+# qml lsp based on Tower and treesitter
 
-[![Crates.io](https://img.shields.io/crates/v/neocmakelsp.svg)](https://crates.io/crates/neocmakelsp)
 
-It is a CMake lsp based on tower-lsp and treesitter 
+It is a qml lsp based on tower-lsp and treesitter a tool 
 
-## Install
 
-```bash
-cargo install neocmakelsp
-```
 
 ## Setup
 
 ```lua
 local configs = require("lspconfig.configs")
 local nvim_lsp = require("lspconfig")
-if not configs.neocmake then
+if not configs.neoqml then
     configs.neocmake = {
         default_config = {
-            cmd = { "neocmakelsp" },
-            filetypes = { "cmake" },
+            cmd = { "neoqmllsp" },
+            filetypes = { "qmljs" },
             root_dir = function(fname)
                 return nvim_lsp.util.find_git_ancestor(fname)
             end,
@@ -36,19 +31,7 @@ end
 
 * complete
 * symbol\_provider
-* On hover
-* GO TO Definitation
 
 ## TODO
 * Undefined function check
 
-## Show
-
-### Complete and symbol support
-![Show](https://raw.githubusercontent.com/Decodetalkers/utils/master/cmakelsp/demo.gif)
-
-### OnHover
-![Show](https://raw.githubusercontent.com/Decodetalkers/utils/master/cmakelsp/onhover.jpg)
-
-### GoToDefinition
-![Show](https://raw.githubusercontent.com/Decodetalkers/utils/master/cmakelsp/definition.png)
