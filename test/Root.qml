@@ -20,41 +20,33 @@ import im.nheko.EmojiModel 1.0
 
 Pane {
     id: timelineRoot
-
     palette: Nheko.colors
     background: null
     padding: 0
-
     FontMetrics {
         id: fontMetrics
     }
-
     RoomDirectoryModel {
         id: publicRooms
     }
-
     //Timer {
     //    onTriggered: gc()
     //    interval: 1000
     //    running: true
     //    repeat: true
     //}
-
     EmojiPicker {
         id: emojiPopup
 
         colors: palette
         model: TimelineManager.completerFor("allemoji", "")
     }
-
     Component {
         id: userProfileComponent
-
         UserProfile {
         }
 
     }
-
     function showAliasEditor(settings) {
         var dialog = aliasEditor.createObject(timelineRoot, {
             "roomSettings": settings
@@ -133,7 +125,6 @@ Pane {
         }
 
     }
-
     Component {
         id: packSettingsComponent
 

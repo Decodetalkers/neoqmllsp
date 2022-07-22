@@ -173,37 +173,40 @@ fn getsubast(input: tree_sitter::Node, source: &str) -> Option<Vec<DocumentSymbo
             "ui_object_definition" => {
                 let newchild = child.child_by_field_name("type_name").unwrap();
                 let h = newchild.start_position().row;
+                let h2 = newchild.end_position().row;
                 let x = newchild.start_position().column;
                 let y = newchild.end_position().column;
-                let name = (&newsource[h][x..y]).to_string();
-                asts.push(DocumentSymbol {
-                    name,
-                    detail: None,
-                    kind: SymbolKind::VARIABLE,
-                    tags: None,
-                    deprecated: None,
-                    range: lsp_types::Range {
-                        start: lsp_types::Position {
-                            line: child.start_position().row as u32,
-                            character: child.start_position().column as u32,
+                if h == h2 {
+                    let name = (&newsource[h][x..y]).to_string();
+                    asts.push(DocumentSymbol {
+                        name,
+                        detail: None,
+                        kind: SymbolKind::VARIABLE,
+                        tags: None,
+                        deprecated: None,
+                        range: lsp_types::Range {
+                            start: lsp_types::Position {
+                                line: child.start_position().row as u32,
+                                character: child.start_position().column as u32,
+                            },
+                            end: lsp_types::Position {
+                                line: child.end_position().row as u32,
+                                character: child.end_position().column as u32,
+                            },
                         },
-                        end: lsp_types::Position {
-                            line: child.end_position().row as u32,
-                            character: child.end_position().column as u32,
+                        selection_range: lsp_types::Range {
+                            start: lsp_types::Position {
+                                line: child.start_position().row as u32,
+                                character: child.start_position().column as u32,
+                            },
+                            end: lsp_types::Position {
+                                line: child.end_position().row as u32,
+                                character: child.end_position().column as u32,
+                            },
                         },
-                    },
-                    selection_range: lsp_types::Range {
-                        start: lsp_types::Position {
-                            line: child.start_position().row as u32,
-                            character: child.start_position().column as u32,
-                        },
-                        end: lsp_types::Position {
-                            line: child.end_position().row as u32,
-                            character: child.end_position().column as u32,
-                        },
-                    },
-                    children: getsubast(child, source),
-                });
+                        children: getsubast(child, source),
+                    });
+                }
             }
 
             _ => {}

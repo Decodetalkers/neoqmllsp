@@ -129,3 +129,84 @@ fn getsubcoplete(input: tree_sitter::Node, source: &str) -> Option<Vec<Completio
         Some(complete)
     }
 }
+#[allow(dead_code)]
+pub fn get_id_complete(
+    input: tree_sitter::Node,
+    source: &str,
+    tosearch: &str,
+) -> Option<CompletionResponse> {
+    //let mut course2 = course.clone();
+    //let mut hasid = false;
+    match input.child_by_field_name("root") {
+        Some(child) => get_id_sub_complete(child, source, tosearch),
+        None => None,
+    }
+}
+#[allow(dead_code)]
+pub fn get_id_sub_complete(
+    input: tree_sitter::Node,
+    source: &str,
+    tosearch: &str,
+) -> Option<CompletionResponse> {
+    let newsource: Vec<&str> = source.lines().collect();
+    //let mut course2 = course.clone();
+    //let mut hasid = false;
+    let mut complete: Vec<CompletionItem> = vec![];
+    match input.kind() {
+        "ui_object_definition" => {
+            let child = input.child_by_field_name("initializer").unwrap();
+            //if let Some(completes) = get_id_complete(child, source, tosearch) {
+            //    return Some(completes);
+            //};
+            let mut neocursor = child.walk();
+            //let neochild = child.children_by_field_name("ui_binding", &mut neocursor);
+            let mut finded = false;
+
+            for neochild in child.children(&mut neocursor) {
+                if let "ui_binding" = neochild.kind() {
+                    let temp = neochild.child_by_field_name("name").unwrap();
+                    let h = temp.start_position().row;
+                    let x = temp.start_position().column;
+                    let y = temp.end_position().column;
+                    let identerfy = &newsource[h][x..y];
+                    if identerfy == "id" {
+                        let value = neochild.child_by_field_name("value").unwrap();
+                        let h = value.start_position().row;
+                        let x = value.start_position().column;
+                        let y = value.end_position().column;
+                        let name = &newsource[h][x..y];
+                        if name == tosearch {
+                            finded = true;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        complete.push(CompletionItem {
+                            label: identerfy.to_string(),
+                            kind: Some(CompletionItemKind::VARIABLE),
+                            detail: Some("defined variable".to_string()),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+            if finded {
+                return Some(CompletionResponse::Array(complete));
+            } else {
+                let mut course = child.walk();
+                let children = child.children(&mut course);
+                for achild in children.into_iter() {
+                    if achild.child_count() != 0 && child.kind() != "ERROR"{
+                        let output = get_id_sub_complete(achild, source, tosearch);
+                        if output.is_some() {
+                            return output;
+                        }
+                    }
+                }
+            }
+        }
+
+        _ => {}
+    }
+    None
+}

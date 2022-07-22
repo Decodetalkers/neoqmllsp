@@ -37,12 +37,10 @@ fn notify_send(input: &str, typeinput: Type) {
         .expect("Error");
 }
 
-
-
 /// Beckend
 #[derive(Debug)]
 struct Backend {
-    /// client 
+    /// client
     client: Client,
     /// Storage the message of buffers
     buffers: Arc<Mutex<HashMap<lsp_types::Url, String>>>,
@@ -65,7 +63,7 @@ impl LanguageServer for Backend {
                 )),
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(false),
-                    trigger_characters: None,
+                    trigger_characters: Some(vec![".".to_string()]),
                     work_done_progress_options: Default::default(),
                     all_commit_characters: None,
                 }),
@@ -278,17 +276,38 @@ impl LanguageServer for Backend {
     async fn completion(&self, input: CompletionParams) -> Result<Option<CompletionResponse>> {
         //Ok(None)
         self.client.log_message(MessageType::INFO, "Complete").await;
-        if input.context.is_some() {
+        if let Some(context) = input.context {
             let uri = input.text_document_position.text_document.uri;
             let storemap = self.buffers.lock().await;
             //notify_send("test", Type::Error);
             match storemap.get(&uri) {
-                Some(context) => {
+                Some(content) => {
                     let mut parse = Parser::new();
                     parse.set_language(tree_sitter_qmljs::language()).unwrap();
-                    let thetree = parse.parse(context.clone(), None);
+                    let thetree = parse.parse(content.clone(), None);
                     let tree = thetree.unwrap();
-                    Ok(gammer::getcoplete(tree.root_node(), context))
+                    if context.trigger_character.is_some() {
+                        if input.text_document_position.position.character > 1 {
+                            let position = input.text_document_position.position;
+                            let character = position.character - 2;
+                            let line = position.line;
+                            if let Some(tomatch) = treehelper::get_positon_string(
+                                Position { line, character },
+                                tree.root_node(),
+                                content,
+                            ) {
+                                return Ok(gammer::get_id_complete(
+                                    tree.root_node(),
+                                    content,
+                                    &tomatch,
+                                ));
+                            }
+                        }
+                        Ok(None)
+                        //Ok(gammer::getcoplete(tree.root_node(), content))
+                    } else {
+                        Ok(gammer::getcoplete(tree.root_node(), content))
+                    }
                 }
                 None => Ok(None),
             }
