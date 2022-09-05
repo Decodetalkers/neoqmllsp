@@ -4,7 +4,7 @@ if not configs.neoqml then
     configs.neoqml = {
         default_config = {
             --cmd = { "./target/debug/qmllsp" },
-            cmd = { "./target/debug/neoqmllsp" },
+            cmd = { 'nc','localhost', '9257' },
             filetypes = { "qmljs" },
             root_dir = function(fname)
                 return nvim_lsp.util.find_git_ancestor(fname)
