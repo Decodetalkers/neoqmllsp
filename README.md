@@ -11,7 +11,7 @@ It is a qml lsp based on tower-lsp and treesitter a tool
 local configs = require("lspconfig.configs")
 local nvim_lsp = require("lspconfig")
 if not configs.neoqml then
-    configs.neocmake = {
+    configs.neoqml = {
         default_config = {
             cmd = { "neoqmllsp" },
             filetypes = { "qmljs" },

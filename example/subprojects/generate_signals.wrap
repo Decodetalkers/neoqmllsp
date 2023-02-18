@@ -1,0 +1,4 @@
+[wrap-git]
+url =  https://github.com/Decodetalkers/qt_cpp_types_generate.git
+revision = master
+depth = 1

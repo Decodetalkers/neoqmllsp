@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>components/UnitPanel.qml</file>
+    </qresource>
+</RCC>
