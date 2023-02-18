@@ -2,10 +2,7 @@
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse, SymbolKind};
 #[allow(deprecated)]
 pub fn getast(input: tree_sitter::Node, source: &str) -> Option<DocumentSymbolResponse> {
-    match getsubast(input, source) {
-        Some(asts) => Some(DocumentSymbolResponse::Nested(asts)),
-        None => None,
-    }
+    getsubast(input, source).map(DocumentSymbolResponse::Nested)
 }
 #[allow(deprecated)]
 fn getsubast(input: tree_sitter::Node, source: &str) -> Option<Vec<DocumentSymbol>> {
@@ -24,7 +21,7 @@ fn getsubast(input: tree_sitter::Node, source: &str) -> Option<Vec<DocumentSymbo
                 let h = newchild.start_position().row;
                 let x = newchild.start_position().column;
                 let y = newchild.end_position().column;
-                let name = (&newsource[h][x..y]).to_string();
+                let name = (newsource[h][x..y]).to_string();
                 asts.push(DocumentSymbol {
                     name,
                     detail: None,
@@ -61,7 +58,7 @@ fn getsubast(input: tree_sitter::Node, source: &str) -> Option<Vec<DocumentSymbo
                 let x = newchild.start_position().column;
                 let y = newchild.end_position().column;
                 if h == h2 {
-                    let name = (&newsource[h][x..y]).to_string();
+                    let name = (newsource[h][x..y]).to_string();
                     asts.push(DocumentSymbol {
                         name,
                         detail: None,
