@@ -1,15 +1,17 @@
+use clap::{Arg, Command};
 use serde_json::Value;
-use std::process::Command;
+use std::collections::HashMap;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 use tree_sitter::Parser;
-//use tree_sitter::Point;
-use std::collections::HashMap;
-use tokio::net::{TcpListener, TcpStream};
 mod ast;
+mod complete;
+mod cppregister;
 mod gammer;
 mod gotodef;
 mod treehelper;
@@ -29,15 +31,6 @@ impl ToString for Type {
         }
     }
 }
-#[allow(dead_code)]
-fn notify_send(input: &str, typeinput: Type) {
-    Command::new("notify-send")
-        .arg(typeinput.to_string())
-        .arg(input)
-        .spawn()
-        .expect("Error");
-}
-
 /// Beckend
 #[derive(Debug)]
 struct Backend {
@@ -46,12 +39,6 @@ struct Backend {
     /// Storage the message of buffers
     buffers: Arc<Mutex<HashMap<lsp_types::Url, String>>>,
 }
-//impl From<tree_sitter::Point> for Position {
-//    fn from(input: tree_sitter::Point) -> Self {
-//        Position { line: input.row as u32, character: input.column as u32 }
-//    }
-//}
-// it should return Option<Vec<Point,Point>>
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
@@ -240,39 +227,11 @@ impl LanguageServer for Backend {
     }
     async fn hover(&self, _params: HoverParams) -> Result<Option<Hover>> {
         Ok(None)
-        //let position = params.text_document_position_params.position;
-        //let uri = params.text_document_position_params.text_document.uri;
-        //let storemap = self.buffers.lock().await;
-        //self.client.log_message(MessageType::INFO, "Hovered!").await;
-        ////notify_send("test", Type::Error);
-        //match storemap.get(&uri) {
-        //    Some(context) => {
-        //        let mut parse = Parser::new();
-        //        parse.set_language(tree_sitter_qmljs::language()).unwrap();
-        //        let thetree = parse.parse(context.clone(), None);
-        //        let tree = thetree.unwrap();
-        //        let output = treehelper::get_cmake_doc(position, tree.root_node(), context);
-        //        match output {
-        //            Some(context) => Ok(Some(Hover {
-        //                contents: HoverContents::Scalar(MarkedString::String(context)),
-        //                range: Some(Range {
-        //                    start: position,
-        //                    end: position,
-        //                }),
-        //            })),
-        //            None => Ok(None),
-        //        }
-        //        //notify_send(context, Type::Error);
-        //        //Ok(None)
-        //    }
-        //    None => Ok(None),
-        //}
     }
     async fn did_close(&self, _: DidCloseTextDocumentParams) {
         self.client
             .log_message(MessageType::INFO, "file closed!")
             .await;
-        //notify_send("file closed", Type::Info);
     }
     async fn completion(&self, input: CompletionParams) -> Result<Option<CompletionResponse>> {
         //Ok(None)
@@ -280,7 +239,6 @@ impl LanguageServer for Backend {
         if let Some(context) = input.context {
             let uri = input.text_document_position.text_document.uri;
             let storemap = self.buffers.lock().await;
-            //notify_send("test", Type::Error);
             match storemap.get(&uri) {
                 Some(content) => {
                     let mut parse = Parser::new();
@@ -297,7 +255,7 @@ impl LanguageServer for Backend {
                                 tree.root_node(),
                                 content,
                             ) {
-                                return Ok(gammer::get_id_complete(
+                                return Ok(complete::get_id_complete(
                                     tree.root_node(),
                                     content,
                                     &tomatch,
@@ -307,7 +265,7 @@ impl LanguageServer for Backend {
                         Ok(None)
                         //Ok(gammer::getcoplete(tree.root_node(), content))
                     } else {
-                        Ok(gammer::getcoplete(tree.root_node(), content))
+                        Ok(complete::getcoplete(tree.root_node(), content))
                     }
                 }
                 None => Ok(None),
@@ -320,43 +278,6 @@ impl LanguageServer for Backend {
         &self,
         _input: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        //let uri = input.text_document_position_params.text_document.uri;
-        //let location = input.text_document_position_params.position;
-        //let storemap = self.buffers.lock().await;
-        //match storemap.get(&uri) {
-        //    Some(context) => {
-        //        let mut parse = Parser::new();
-        //        parse.set_language(tree_sitter_cmake::language()).unwrap();
-        //        let thetree = parse.parse(context.clone(), None);
-        //        let tree = thetree.unwrap();
-        //        let origin_selection_range =
-        //            treehelper::get_positon_range(location, tree.root_node(), context);
-
-        //        //notify_send(context, Type::Error);
-        //        //Ok(None)
-        //        match gotodef::godef(location, tree.root_node(), context) {
-        //            Some(range) => Ok(Some(GotoDefinitionResponse::Link({
-        //                range.iter().filter(|input|{
-        //                    match origin_selection_range {
-        //                        Some(origin) => origin != **input,
-        //                        None => true,
-        //                    }
-        //                })
-        //                .map(|range| LocationLink {
-        //                    origin_selection_range,
-        //                    target_uri:uri.clone(),
-        //                    target_range: *range,
-        //                    target_selection_range: *range
-        //                })
-        //                .collect()
-        //            }))),
-        //            None => Ok(None),
-        //        }
-
-        //        //Ok(None)
-        //    }
-        //    None => Ok(None),
-        //}
         Ok(None)
     }
     // TODO ? Why cannot get it?
@@ -366,15 +287,12 @@ impl LanguageServer for Backend {
     ) -> Result<Option<DocumentSymbolResponse>> {
         let uri = input.text_document.uri.clone();
         let storemap = self.buffers.lock().await;
-        //notify_send("test", Type::Error);
         match storemap.get(&uri) {
             Some(context) => {
                 let mut parse = Parser::new();
                 parse.set_language(tree_sitter_qmljs::language()).unwrap();
                 let thetree = parse.parse(context.clone(), None);
                 let tree = thetree.unwrap();
-                //notify_send(context, Type::Error);
-                //Ok(None)
                 Ok(ast::getast(tree.root_node(), context))
             }
             None => Ok(None),
@@ -384,50 +302,78 @@ impl LanguageServer for Backend {
 
 #[tokio::main]
 async fn main() {
-    if cfg!(feature = "tcp") {
-        #[cfg(feature = "runtime-agnostic")]
-        use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
-        tracing_subscriber::fmt().init();
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    let matches = Command::new("neoqmllsp")
+        .about("neo lsp for cmake")
+        .version(VERSION)
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .author("Cris")
+        .subcommand(
+            Command::new("stdio")
+                .long_flag("stdio")
+                .about("run with stdio"),
+        )
+        .subcommand(
+            Command::new("tcp")
+                .long_flag("tcp")
+                .about("run with tcp")
+                .arg(
+                    Arg::new("port")
+                        .long("port")
+                        .short('P')
+                        .help("listen to port"),
+                ),
+        )
+        .get_matches();
+    match matches.subcommand() {
+        Some(("stdio", _)) => {
+            tracing_subscriber::fmt().init();
+            let (stdin, stdout) = (tokio::io::stdin(), tokio::io::stdout());
+            let (service, socket) = LspService::new(|client| Backend {
+                client,
+                buffers: Arc::new(Mutex::new(HashMap::new())),
+            });
+            Server::new(stdin, stdout, socket).serve(service).await;
+        }
+        Some(("tcp", sync_matches)) => {
+            #[cfg(feature = "runtime-agnostic")]
+            use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
+            tracing_subscriber::fmt().init();
+            let stream = {
+                if sync_matches.contains_id("port") {
+                    let port = sync_matches.get_one::<String>("port").expect("error");
+                    let port: u16 = port.parse().unwrap();
+                    let listener = TcpListener::bind(SocketAddr::new(
+                        std::net::IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+                        port,
+                    ))
+                    .await
+                    .unwrap();
+                    let (stream, _) = listener.accept().await.unwrap();
+                    stream
+                } else {
+                    let listener = TcpListener::bind(SocketAddr::new(
+                        std::net::IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+                        9257,
+                    ))
+                    .await
+                    .unwrap();
+                    let (stream, _) = listener.accept().await.unwrap();
+                    stream
+                }
+            };
 
-        let mut args = std::env::args();
-        let stream = match args.nth(1).as_deref() {
-            None => {
-                // If no argument is supplied (args is just the program name), then
-                // we presume that the client has opened the TCP port and is waiting
-                // for us to connect. This is the connection pattern used by clients
-                // built with vscode-langaugeclient.
-                TcpStream::connect("127.0.0.1:9257").await.unwrap()
-            }
-            Some("--listen") => {
-                // If the `--listen` argument is supplied, then the roles are
-                // reversed: we need to start a server and wait for the client to
-                // connect.
-                let listener = TcpListener::bind("127.0.0.1:9257").await.unwrap();
-                let (stream, _) = listener.accept().await.unwrap();
-                stream
-            }
-            Some(arg) => panic!(
-                "Unrecognized argument: {}. Use --listen to listen for connections.",
-                arg
-            ),
-        };
+            let (read, write) = tokio::io::split(stream);
+            #[cfg(feature = "runtime-agnostic")]
+            let (read, write) = (read.compat(), write.compat_write());
 
-        let (read, write) = tokio::io::split(stream);
-        #[cfg(feature = "runtime-agnostic")]
-        let (read, write) = (read.compat(), write.compat_write());
-
-        let (service, socket) = LspService::new(|client| Backend {
-            client,
-            buffers: Arc::new(Mutex::new(HashMap::new())),
-        });
-        Server::new(read, write, socket).serve(service).await;
-    } else {
-        tracing_subscriber::fmt().init();
-        let (stdin, stdout) = (tokio::io::stdin(), tokio::io::stdout());
-        let (service, socket) = LspService::new(|client| Backend {
-            client,
-            buffers: Arc::new(Mutex::new(HashMap::new())),
-        });
-        Server::new(stdin, stdout, socket).serve(service).await;
+            let (service, socket) = LspService::new(|client| Backend {
+                client,
+                buffers: Arc::new(Mutex::new(HashMap::new())),
+            });
+            Server::new(read, write, socket).serve(service).await;
+        }
+        _ => unimplemented!(),
     }
 }
