@@ -16,21 +16,7 @@ mod gammer;
 mod gotodef;
 mod treehelper;
 use gammer::checkerror;
-#[allow(dead_code)]
-enum Type {
-    Error,
-    Warning,
-    Info,
-}
-impl ToString for Type {
-    fn to_string(&self) -> String {
-        match self {
-            Type::Warning => "Warning".to_string(),
-            Type::Error => "Error".to_string(),
-            Type::Info => "Info".to_string(),
-        }
-    }
-}
+
 /// Beckend
 #[derive(Debug)]
 struct Backend {
@@ -42,7 +28,12 @@ struct Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+    async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
+        let uri = init.root_uri;
+        if let Some(uri) = uri {
+            let path = std::path::Path::new(uri.path()).join("build/types.json");
+            let _ = cppregister::reload_data(path).await;
+        }
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
@@ -234,39 +225,20 @@ impl LanguageServer for Backend {
             .await;
     }
     async fn completion(&self, input: CompletionParams) -> Result<Option<CompletionResponse>> {
-        //Ok(None)
         self.client.log_message(MessageType::INFO, "Complete").await;
         if let Some(context) = input.context {
             let uri = input.text_document_position.text_document.uri;
             let storemap = self.buffers.lock().await;
             match storemap.get(&uri) {
                 Some(content) => {
-                    let mut parse = Parser::new();
-                    parse.set_language(tree_sitter_qmljs::language()).unwrap();
-                    let thetree = parse.parse(content.clone(), None);
-                    let tree = thetree.unwrap();
-                    if context.trigger_character.is_some() {
-                        if input.text_document_position.position.character > 1 {
-                            let position = input.text_document_position.position;
-                            let character = position.character - 2;
-                            let line = position.line;
-                            if let Some(tomatch) = treehelper::get_positon_string(
-                                Position { line, character },
-                                tree.root_node(),
-                                content,
-                            ) {
-                                return Ok(complete::get_id_complete(
-                                    tree.root_node(),
-                                    content,
-                                    &tomatch,
-                                ));
-                            }
-                        }
-                        Ok(None)
-                        //Ok(gammer::getcoplete(tree.root_node(), content))
-                    } else {
-                        Ok(complete::getcoplete(tree.root_node(), content))
-                    }
+                    let position = input.text_document_position.position;
+                    Ok(complete::getcomplete(
+                        &content,
+                        position,
+                        &self.client,
+                        context.trigger_character,
+                    )
+                    .await)
                 }
                 None => Ok(None),
             }
@@ -280,7 +252,6 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoDefinitionResponse>> {
         Ok(None)
     }
-    // TODO ? Why cannot get it?
     async fn document_symbol(
         &self,
         input: DocumentSymbolParams,

@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 use tokio::sync::Mutex;
+use std::path::Path;
+use std::sync::Arc;
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct CppQml {
     pub name: String,
@@ -17,9 +19,14 @@ pub struct CppQml {
     pub version_minor: i32,
 }
 
-pub static GLOBAL_DATA: Lazy<Mutex<Vec<CppQml>>> = Lazy::new(|| {
+pub static GLOBAL_DATA: Lazy<Arc<Mutex<Vec<CppQml>>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(vec![]))
+});
+
+pub async fn reload_data<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
+    let mut data = GLOBAL_DATA.lock().await;
     let file = || -> anyhow::Result<Vec<CppQml>> {
-        let file = File::open("build/types.json")?;
+        let file = File::open(path)?;
         let reader = BufReader::new(file);
 
         // Read the JSON contents of the file as an instance of `User`.
@@ -32,8 +39,9 @@ pub static GLOBAL_DATA: Lazy<Mutex<Vec<CppQml>>> = Lazy::new(|| {
         Ok(types) => types,
         Err(_) => vec![],
     };
-    Mutex::new(qmltypes)
-});
+    *data = qmltypes;
+    Ok(())
+}
 
 #[test]
 fn read_type() {

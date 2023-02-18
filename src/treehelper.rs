@@ -23,10 +23,7 @@ fn position_to_point(input: Position) -> Point {
     }
 }
 
-
-
 /// get the positon of the string
-#[allow(dead_code)]
 pub fn get_positon_string(location: Position, root: Node, source: &str) -> Option<String> {
     let neolocation = position_to_point(location);
     let newsource: Vec<&str> = source.lines().collect();
@@ -62,7 +59,8 @@ pub fn get_positon_string(location: Position, root: Node, source: &str) -> Optio
 
 /// from the position to get range
 #[allow(dead_code)]
-pub fn get_positon_range(location: Position, root: Node, _source: &str) -> Option<Range> {
+/// from the position to get range
+pub fn get_position_range(location: Position, root: Node) -> Option<Range> {
     let neolocation = position_to_point(location);
     //let newsource: Vec<&str> = source.lines().collect();
     let mut course = root.walk();
@@ -72,7 +70,7 @@ pub fn get_positon_range(location: Position, root: Node, _source: &str) -> Optio
             && neolocation.row >= child.start_position().row
         {
             if child.child_count() != 0 {
-                let mabepos = get_positon_range(location, child, _source);
+                let mabepos = get_position_range(location, child);
                 if mabepos.is_some() {
                     return mabepos;
                 }

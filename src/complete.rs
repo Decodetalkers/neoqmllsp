@@ -1,12 +1,59 @@
-use crate::CompletionResponse;
+use crate::cppregister;
+use crate::treehelper;
+use lsp_types::CompletionResponse;
+use lsp_types::MessageType;
+use lsp_types::Position;
 use lsp_types::{CompletionItem, CompletionItemKind};
-#[allow(dead_code)]
-pub fn getcoplete(input: tree_sitter::Node, source: &str) -> Option<CompletionResponse> {
-    getsubcoplete(input, source).map(CompletionResponse::Array)
+
+pub async fn getcomplete(
+    source: &str,
+    location: Position,
+    client: &tower_lsp::Client,
+    triggertype: Option<String>,
+) -> Option<CompletionResponse> {
+    client.log_message(MessageType::INFO, "Complete").await;
+    let mut parse = tree_sitter::Parser::new();
+    parse.set_language(tree_sitter_qmljs::language()).unwrap();
+    let thetree = parse.parse(source, None);
+    let tree = thetree.unwrap();
+    match triggertype {
+        Some(_) => {
+            if location.character > 1 {
+                let character = location.character - 2;
+                let line = location.line;
+                if let Some(tomatch) = treehelper::get_positon_string(
+                    Position { line, character },
+                    tree.root_node(),
+                    source,
+                ) {
+                    return get_id_complete(tree.root_node(), source, &tomatch);
+                }
+            }
+            None
+        }
+        None => {
+            let mut completes = vec![];
+            let data = cppregister::GLOBAL_DATA.lock().await;
+            for da in data.iter() {
+                completes.push(CompletionItem {
+                    label: da.name.clone(),
+                    kind: Some(CompletionItemKind::VARIABLE),
+                    detail: Some("defined variable".to_string()),
+                    ..Default::default()
+                });
+            }
+            if let Some(mut subbasecomplete) = getsubbasecomplete(tree.root_node(), source) {
+                completes.append(&mut subbasecomplete);
+            }
+            Some(CompletionResponse::Array(completes))
+            //getbasecoplete(tree.root_node(), source),
+        }
+    }
 }
+
 /// get the variable from the loop
 #[allow(dead_code)]
-fn getsubcoplete(input: tree_sitter::Node, source: &str) -> Option<Vec<CompletionItem>> {
+fn getsubbasecomplete(input: tree_sitter::Node, source: &str) -> Option<Vec<CompletionItem>> {
     let newsource: Vec<&str> = source.lines().collect();
     let mut course = input.walk();
     //let mut course2 = course.clone();
@@ -15,7 +62,7 @@ fn getsubcoplete(input: tree_sitter::Node, source: &str) -> Option<Vec<Completio
     for child in input.children(&mut course) {
         if child.kind() == "ui_object_definition" {
             let child = child.child_by_field_name("initializer").unwrap();
-            if let Some(mut completes) = getsubcoplete(child, source) {
+            if let Some(mut completes) = getsubbasecomplete(child, source) {
                 complete.append(&mut completes);
             };
             let mut course = child.walk();
