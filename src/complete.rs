@@ -1,3 +1,5 @@
+mod qmllibs;
+
 use crate::cppregister;
 use crate::treehelper;
 use lsp_types::CompletionResponse;

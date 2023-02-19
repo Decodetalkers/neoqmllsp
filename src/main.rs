@@ -233,7 +233,7 @@ impl LanguageServer for Backend {
                 Some(content) => {
                     let position = input.text_document_position.position;
                     Ok(complete::getcomplete(
-                        &content,
+                        content,
                         position,
                         &self.client,
                         context.trigger_character,
