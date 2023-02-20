@@ -67,6 +67,21 @@ impl QmlModule {
     }
 }
 
+fn get_enum_from_source<S: ToString>(content: S, node: tree_sitter::Node) -> QmlEnum {
+    todo!()
+}
+
+fn get_property_from_source<S: ToString>(content: S, node: tree_sitter::Node) -> QmlProperty {
+    todo!()
+}
+
+fn get_signal_from_source<S: ToString>(content: S, node: tree_sitter::Node) -> QmlSignal {
+    todo!()
+}
+
+fn get_method_from_source<S: ToString>(content: S, node: tree_sitter::Node) -> QmlMethod {
+    todo!()
+}
 fn get_module_from_source<S, P>(
     content: S,
     namespace: Option<String>,
@@ -166,6 +181,19 @@ where
                             }
                         }
                         "ui_object_definition" => {
+                            let typename = child.child_by_field_name("type_name").unwrap();
+                            let row = typename.start_position().row;
+                            let start_x = typename.start_position().column;
+                            let start_y = typename.end_position().column;
+                            let type_name = (&newsource[row][start_x..start_y]).to_string();
+                            let object_init = child.child_by_field_name("initializer").unwrap();
+                            match type_name.as_str() {
+                                "Enum" => {}
+                                "Property" => {}
+                                "Signal" => {}
+                                "Method" => {}
+                                _ => {}
+                            }
                         }
                         _ => {}
                     }
