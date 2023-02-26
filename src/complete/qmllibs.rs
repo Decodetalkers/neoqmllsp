@@ -43,6 +43,7 @@ pub async fn update_modules() -> anyhow::Result<()> {
     *modules = new_modules;
     Ok(())
 }
+
 #[derive(Debug)]
 pub struct QmlModule {
     pub plugin_location: String,
@@ -113,6 +114,8 @@ async fn get_namespace<P: AsRef<Path>>(path: P) -> String {
         .to_str()
         .unwrap()
         .to_string();
+    // TODO: QGSettings.1.0, version
+    let relative = relative.split('.').collect::<Vec<&str>>()[0].to_string();
     relative.replace('/', ".")
 }
 
