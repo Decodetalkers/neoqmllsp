@@ -39,6 +39,10 @@ Module {
         Property { name: "overshoot"; type: "double" }
         Property { name: "period"; type: "double" }
         Property { name: "bezierCurve"; type: "QVariantList" }
+        Property { name: "icon"; type: "QDeclarativePlaceIcon"; isPointer: true }
+        Property { name: "status"; type: "Status"; isReadonly: true }
+        isCreatable: false
+        isSingleton: true
         Signal {
             name: "skeletonChanged"
             Parameter { name: "skeleton"; type: "Qt3DCore::QAbstractSkeleton"; isPointer: true }

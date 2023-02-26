@@ -1,5 +1,5 @@
 mod qmllibs;
-
+pub use qmllibs::{update_modules, update_root_dir};
 use crate::cppregister;
 use crate::treehelper;
 use lsp_types::CompletionResponse;

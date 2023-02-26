@@ -299,6 +299,7 @@ async fn main() {
         .get_matches();
     match matches.subcommand() {
         Some(("stdio", _)) => {
+            complete::update_modules().await.unwrap();
             tracing_subscriber::fmt().init();
             let (stdin, stdout) = (tokio::io::stdin(), tokio::io::stdout());
             let (service, socket) = LspService::new(|client| Backend {
@@ -308,6 +309,7 @@ async fn main() {
             Server::new(stdin, stdout, socket).serve(service).await;
         }
         Some(("tcp", sync_matches)) => {
+            complete::update_modules().await.unwrap();
             #[cfg(feature = "runtime-agnostic")]
             use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
             tracing_subscriber::fmt().init();
