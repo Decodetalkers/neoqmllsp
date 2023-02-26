@@ -1,11 +1,11 @@
 mod qmllibs;
-pub use qmllibs::{update_modules, update_root_dir};
 use crate::cppregister;
 use crate::treehelper;
 use lsp_types::CompletionResponse;
 use lsp_types::MessageType;
 use lsp_types::Position;
 use lsp_types::{CompletionItem, CompletionItemKind};
+pub use qmllibs::{update_modules, update_root_dir};
 
 pub async fn getcomplete(
     source: &str,

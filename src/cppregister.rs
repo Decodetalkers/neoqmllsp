@@ -2,9 +2,9 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
-use tokio::sync::Mutex;
 use std::path::Path;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct CppQml {
     pub name: String,
@@ -19,9 +19,7 @@ pub struct CppQml {
     pub version_minor: i32,
 }
 
-pub static GLOBAL_DATA: Lazy<Arc<Mutex<Vec<CppQml>>>> = Lazy::new(|| {
-    Arc::new(Mutex::new(vec![]))
-});
+pub static GLOBAL_DATA: Lazy<Arc<Mutex<Vec<CppQml>>>> = Lazy::new(|| Arc::new(Mutex::new(vec![])));
 
 pub async fn reload_data<P: AsRef<Path>>(path: P) -> anyhow::Result<()> {
     let mut data = GLOBAL_DATA.lock().await;

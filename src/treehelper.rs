@@ -2,7 +2,7 @@
 use lsp_types::Position;
 use lsp_types::Range;
 use tree_sitter::{Node, Point};
-/// convert Point to Positon 
+/// convert Point to Positon
 /// treesitter to lsp_types
 #[allow(dead_code)]
 #[inline]
