@@ -379,6 +379,10 @@ async fn tst_path() {
         get_namespace("/usr/lib/qt/qml/QtQml/StateMachine").await,
         "QtQml.StateMachine".to_string()
     );
+    assert_eq!(
+        get_namespace("/usr/lib/qt/qml/GSettings.1.0").await,
+        "GSettings".to_string()
+    );
 }
 
 #[tokio::test]
