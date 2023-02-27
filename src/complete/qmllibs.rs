@@ -25,6 +25,9 @@ pub async fn update_root_dir<S: ToString>(path: S) {
 pub static ALL_MODULES: Lazy<Arc<Mutex<Vec<QmlModule>>>> =
     Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
 
+pub static BUILDIN_MODULE: Lazy<Arc<Mutex<Option<QmlModule>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(None)));
+
 pub async fn update_modules() -> anyhow::Result<()> {
     let mut modules = ALL_MODULES.lock().await;
     let rootdir = ROOT_LIB_DIR.lock().await;
@@ -37,10 +40,12 @@ pub async fn update_modules() -> anyhow::Result<()> {
             new_modules.push(module);
         };
     }
-    if let Ok(module) = QmlModule::buildintypes().await {
-        new_modules.push(module);
-    }
+
     *modules = new_modules;
+    if let Ok(module) = QmlModule::buildintypes().await {
+        let mut buidinmodule = BUILDIN_MODULE.lock().await;
+        *buidinmodule = Some(module);
+    }
     Ok(())
 }
 
