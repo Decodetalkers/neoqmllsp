@@ -45,6 +45,7 @@ impl LanguageServer for Backend {
                     trigger_characters: Some(vec![".".to_string()]),
                     work_done_progress_options: Default::default(),
                     all_commit_characters: None,
+                    completion_item: None,
                 }),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec!["dummy.do_something".to_string()],
